@@ -25,8 +25,44 @@ Impact on SDLC:
 - Supports scalability by providing reusable security primitives for all app layers.
 """
 
-
+from fastapi import Request, status
 from fastapi.security import HTTPBearer
+from fastapi.security.http import HTTPAuthorizationCredentials
+from app.core.security import decode_token
+from fastapi.exceptions import HTTPException
+
+
+from fastapi import Request, status
+from fastapi.security import HTTPBearer
+from fastapi.security.http import HTTPAuthorizationCredentials
+from app.core.security import decode_token
+from fastapi.exceptions import HTTPException
+
 
 class AccessTokenBearer(HTTPBearer):
-    pass
+
+    def __init__(self, auto_error=True):
+        super().__init__(auto_error=auto_error)
+
+    async def __call__(self, request: Request) -> dict:
+        credentials: HTTPAuthorizationCredentials = await super().__call__(request)
+
+        token = credentials.credentials
+        token_data = decode_token(token)
+
+        if not self.token_valid(token_data):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Invalid or expired token"
+            )
+
+        if token_data.get("refresh"):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Please provide an access token"
+            )
+
+        return token_data
+
+    def token_valid(self, token_data: dict | None) -> bool:
+        return token_data is not None

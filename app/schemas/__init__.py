@@ -30,10 +30,9 @@ __all__ = [
 ]
 
 
-from .v1.user import User, UserCreateModel, UserReadModel, UserLoginModel
+from .v1.user import UserCreateModel, UserReadModel, UserLoginModel
 
 __all__ = [
-    "User",
     "UserCreateModel",
     "UserReadModel",
     "UserLoginModel",

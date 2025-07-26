@@ -28,8 +28,9 @@ from app.schemas import Book, BookCreateModel, BookUpdateModel, BookReadModel
 # - Book, BookCreateModel, BookUpdateModel, BookReadModel:
 #   Pydantic models defining the structure and validation of book-related API payloads.
 
-from app.api.v1.dependencies import get_db_session
+from app.api.v1.dependencies import get_db_session, get_user_details
 # - get_db_session: dependency function to provide an async database session.
+# - get_user_details: dependency that extracts user info via access token authentication.
 
 # SQLModel async session type for typing the session parameter:
 from sqlmodel.ext.asyncio.session import AsyncSession
@@ -47,7 +48,7 @@ book_service = BookService()
 
 
 @book_router.get('/', response_model=List[Book])
-async def get_all_books(session: AsyncSession = get_db_session()):
+async def get_all_books(session: AsyncSession = get_db_session(), user_details=get_user_details()):
     """
     Retrieve all books.
 
@@ -63,7 +64,7 @@ async def get_all_books(session: AsyncSession = get_db_session()):
 
 
 @book_router.post('/', status_code=status.HTTP_201_CREATED, response_model=Book)
-async def create_a_book(book_data: BookCreateModel, session: AsyncSession = get_db_session()) -> dict:
+async def create_a_book(book_data: BookCreateModel, session: AsyncSession = get_db_session(), user_details=get_user_details()) -> dict:
     """
     Create a new book.
 
@@ -75,12 +76,12 @@ async def create_a_book(book_data: BookCreateModel, session: AsyncSession = get_
         dict: The newly created book object.
     """
     # Pass validated book data to service for creation
-    new_book = await book_service.create_book(book_data, session)
+    new_book = await book_service.create_book(book_data, session, user_details=get_user_details())
     return new_book
      
 
 @book_router.get('/{book_uid}', response_model=Book)
-async def get_book(book_uid: str, session: AsyncSession = get_db_session()) -> dict:
+async def get_book(book_uid: str, session: AsyncSession = get_db_session(), user_details=get_user_details()) -> dict:
     """
     Retrieve a book by its unique ID.
 
@@ -105,7 +106,7 @@ async def get_book(book_uid: str, session: AsyncSession = get_db_session()) -> d
 
 
 @book_router.patch('/{book_uid}', response_model=BookUpdateModel)
-async def update_book(book_uid: str, book_update_data: BookUpdateModel, session: AsyncSession = get_db_session()) -> dict:
+async def update_book(book_uid: str, book_update_data: BookUpdateModel, session: AsyncSession = get_db_session(), user_details=get_user_details()) -> dict:
     """
     Update a book partially by its unique ID.
 
@@ -121,7 +122,7 @@ async def update_book(book_uid: str, book_update_data: BookUpdateModel, session:
         HTTPException 404: If book with given ID does not exist.
     """
     # Delegate update to service layer
-    updated_book = await book_service.update_book(book_uid, book_update_data, session)
+    updated_book = await book_service.update_book(book_uid, book_update_data, session, user_details=get_user_details())
     
     if updated_book is not None:
         return updated_book
@@ -131,7 +132,7 @@ async def update_book(book_uid: str, book_update_data: BookUpdateModel, session:
 
 
 @book_router.delete('/{book_uid}', status_code=status.HTTP_204_NO_CONTENT)
-async def delete_book(book_uid: str, session: AsyncSession = get_db_session()):
+async def delete_book(book_uid: str, session: AsyncSession = get_db_session(), user_details=get_user_details()):
     """
     Delete a book by its unique ID.
 

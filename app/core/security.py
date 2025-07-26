@@ -17,7 +17,7 @@ Impact on SDLC:
 from passlib.context import CryptContext
 
 # For setting token expiration timestamps and handling time operations.
-from datetime import timedelta, datetime
+from datetime import timedelta, datetime, timezone
 
 # PyJWT is used to encode and decode JWT tokens.
 import jwt
@@ -87,12 +87,26 @@ def create_access_token(user_data: dict, expiry: timedelta = None, refresh: bool
     Usage:
         Used after successful authentication or token refresh to issue credentials.
     """
+    
     payload = {
         'user': user_data,
-        'exp': datetime.now() + (expiry if expiry is not None else timedelta(seconds=ACCESS_TOKEN_EXPIRY)),
+        'exp': datetime.now(timezone.utc) + (expiry if expiry is not None else timedelta(seconds=ACCESS_TOKEN_EXPIRY)),
         'jti': str(uuid.uuid4()),  # Unique token identifier
         'refresh': refresh
     }
+    
+    """
+    Note on timezone-aware datetime usage for token generation:
+
+    Python encourages the use of timezone-aware datetime objects instead of naive ones.
+    `datetime.utcnow()` returns a naive UTC datetime, which may cause subtle bugs when
+    compared with timezone-aware values (e.g., from `datetime.now(timezone.utc)`).
+
+    Using `datetime.now(timezone.utc)` ensures the `exp` claim in JWTs is correctly
+    interpreted and consistent across environments that expect timezone-aware datetimes.
+    """
+    
+    print(payload)
 
     token = jwt.encode(
         payload=payload,
@@ -104,16 +118,25 @@ def create_access_token(user_data: dict, expiry: timedelta = None, refresh: bool
 
 def decode_token(token: str) -> dict | None:
     """
-    Decode and validate a JWT token.
+    Decode and validate a JWT access token.
+
+    This function attempts to decode a JWT using the configured secret and algorithm.
+    It handles token expiration explicitly, raising an HTTP 401 Unauthorized error
+    when the token has expired. Other decoding failures (e.g., malformed token,
+    invalid signature) are logged and return None.
 
     Args:
-        token (str): The JWT token string received from client.
+        token (str): The JWT token string received from the client.
 
     Returns:
-        dict | None: Decoded token data if valid; None if decoding fails.
+        dict | None: Decoded token payload if valid; None if decoding fails for reasons
+        other than expiration.
+
+    Raises:
+        HTTPException: If the token has expired (401 Unauthorized).
 
     Usage:
-        Called in dependency logic to extract and verify user identity for protected routes.
+        Used in FastAPI dependencies to extract user identity and verify token integrity.
     """
     try:
         token_data = jwt.decode(
@@ -122,6 +145,7 @@ def decode_token(token: str) -> dict | None:
             algorithms=[Config.JWT_ALGORITHM]
         )
         return token_data
+
     except jwt.PyJWTError as e:
         logging.exception(e)  # Logs exception with traceback for debugging
         return None

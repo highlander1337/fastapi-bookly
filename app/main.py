@@ -75,7 +75,7 @@ app.include_router(
 # Register the auth router with a versioned API prefix and tag for documentation grouping
 app.include_router(
     auth_router,
-    prefix=f"/api/{version}/auth",  # e.g., /api/v1/books
+    prefix=f"/api/{version}/auth",  # e.g., /api/v1/auth
     tags=["auth"]  # OpenAPI grouping
 )
 
