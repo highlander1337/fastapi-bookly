@@ -66,7 +66,7 @@ sql-bookly/
 
 ---
 
-## Command to create an alembic folder
+## Create an alembic folder
 
 ``` bash
 alembic init -t async `folder_name`
