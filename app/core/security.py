@@ -105,8 +105,6 @@ def create_access_token(user_data: dict, expiry: timedelta = None, refresh: bool
     Using `datetime.now(timezone.utc)` ensures the `exp` claim in JWTs is correctly
     interpreted and consistent across environments that expect timezone-aware datetimes.
     """
-    
-    print(payload)
 
     token = jwt.encode(
         payload=payload,

@@ -1,6 +1,6 @@
 # How to create a FastAPI application
 
-<https://youtu.be/TO4aQ3ghFOc?t=18840>
+<https://youtu.be/TO4aQ3ghFOc?t=21005>
 
 ## Create a folder structure
 
