@@ -178,8 +178,6 @@ Here’s how Alembic fits into each phase of the SDLC:
 | **LLD**     | Automates and tracks DB schema changes aligned with model changes        |
 | **SDLC**    | Supports safe, repeatable migrations in dev, test, CI/CD, and production |
 
-Let me know if you want a visual diagram or a sample integration flow!
-
 ## How to generate a secret key
 
 ``` python
