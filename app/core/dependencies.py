@@ -24,96 +24,147 @@ Impact on SDLC:
 - Simplifies testing by enabling targeted overrides of core dependencies.
 - Supports scalability by providing reusable security primitives for all app layers.
 """
-
-# Import FastAPI's Request object for accessing request-level data
+# Import FastAPI's Request object for accessing request-level data and standard HTTP status codes
 from fastapi import Request, status
 
-# Import HTTPBearer, a FastAPI class for handling HTTP bearer token authentication
+# Import HTTPBearer to define and enforce Bearer Token authentication in FastAPI routes
 from fastapi.security import HTTPBearer
 
-# Import credentials model used to parse and validate the Authorization header
+# Import the credentials class that represents parsed "Authorization: Bearer <token>" headers
 from fastapi.security.http import HTTPAuthorizationCredentials
 
-# Import the function responsible for decoding and validating JWT tokens
+# Import the JWT decoding logic from the application's core security module
 from app.core.security import decode_token
 
-# Import HTTPException for raising custom HTTP error responses
+# Import FastAPI's exception class for returning HTTP errors to clients
 from fastapi.exceptions import HTTPException
 
 
-class AccessTokenBearer(HTTPBearer):
+class TokenBearer(HTTPBearer):
     """
-    Custom authentication class that validates access tokens (JWT).
+    Abstract base authentication class for validating JWT tokens using the HTTP Bearer scheme.
 
-    This class extends FastAPI's HTTPBearer scheme and integrates JWT validation
-    logic, ensuring that incoming requests include a valid access token.
-
-    It also enforces that only access tokens (not refresh tokens) are accepted,
-    preventing misuse of refresh tokens in protected routes.
+    This class decodes the incoming Bearer token and delegates validation of the token content
+    (such as whether it's an access or refresh token) to the `verify_token_data` method,
+    which must be implemented by subclasses.
 
     Attributes:
-        auto_error (bool): Whether to automatically raise HTTPException
-                           if authentication fails (default: True).
+        auto_error (bool): Whether to raise an automatic HTTPException if authentication fails.
     """
 
-    def __init__(self, auto_error=True):
+    def __init__(self, auto_error: bool = True):
         """
-        Initialize the AccessTokenBearer instance.
+        Initialize the TokenBearer instance with optional automatic error raising.
 
         Args:
-            auto_error (bool): Whether to automatically raise an exception if 
-                               credentials are invalid or missing.
+            auto_error (bool): If True, raise HTTPException on auth failure. Default is True.
         """
         super().__init__(auto_error=auto_error)
 
     async def __call__(self, request: Request) -> dict:
         """
-        Extract and validate the bearer token from the request.
+        Extract and decode a Bearer token from the request, and validate its content.
 
         Args:
-            request (Request): The incoming HTTP request.
+            request (Request): The incoming HTTP request containing the token.
 
         Returns:
-            dict: The decoded token payload if validation succeeds.
+            dict: The decoded JWT payload.
 
         Raises:
-            HTTPException: If the token is invalid, expired, or is a refresh token.
+            HTTPException: If the token is missing, invalid, expired, or of the wrong type.
         """
-        # Retrieve and validate credentials from the Authorization header
+        # Use the parent class to retrieve the credentials from the Authorization header
         credentials: HTTPAuthorizationCredentials = await super().__call__(request)
 
-        # Extract the raw token string
+        # Get the raw token string
         token = credentials.credentials
 
-        # Decode the JWT and extract token data
+        # Decode the JWT and extract its payload
         token_data = decode_token(token)
 
-        # Reject if token is invalid or expired
+        # If decoding failed or token is invalid, raise an error
         if not self.token_valid(token_data):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Invalid or expired token"
             )
 
-        # Prevent refresh tokens from being used in place of access tokens
-        if token_data.get("refresh"):
+        # Perform additional validation specific to access or refresh tokens
+        self.verify_token_data(token_data)
+
+        return token_data
+
+    def token_valid(self, token_data: dict | None) -> bool:
+        """
+        Check whether the decoded JWT payload is valid.
+
+        Args:
+            token_data (dict | None): The payload returned from decode_token().
+
+        Returns:
+            bool: True if the payload is not None; False otherwise.
+        """
+        return token_data is not None
+
+    def verify_token_data(self, token_data: dict) -> None:
+        """
+        Abstract method for validating the token's claims based on context (access or refresh).
+
+        This method should be overridden by subclasses to enforce token-type-specific logic.
+
+        Args:
+            token_data (dict): The decoded JWT payload.
+
+        Raises:
+            NotImplementedError: If not overridden in a subclass.
+        """
+        raise NotImplementedError("Please override this method in child classes.")
+
+
+class AccessTokenBearer(TokenBearer):
+    """
+    Authentication class that validates access tokens specifically.
+
+    Ensures the token is *not* a refresh token by checking the `refresh` claim.
+    """
+
+    def verify_token_data(self, token_data: dict) -> None:
+        """
+        Ensure the token is a valid access token (not a refresh token).
+
+        Args:
+            token_data (dict): The decoded JWT payload.
+
+        Raises:
+            HTTPException: If the token is a refresh token instead of an access token.
+        """
+        if token_data and token_data.get("refresh"):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Please provide an access token"
             )
 
-        # Return the token payload if valid
-        return token_data
 
-    def token_valid(self, token_data: dict | None) -> bool:
+class RefreshTokenBearer(TokenBearer):
+    """
+    Authentication class that validates refresh tokens specifically.
+
+    Ensures the token *is* a refresh token by checking the `refresh` claim.
+    """
+
+    def verify_token_data(self, token_data: dict) -> None:
         """
-        Check whether the decoded token data is valid.
+        Ensure the token is a valid refresh token.
 
         Args:
-            token_data (dict | None): The payload extracted from the JWT.
+            token_data (dict): The decoded JWT payload.
 
-        Returns:
-            bool: True if the token data is valid, False otherwise.
+        Raises:
+            HTTPException: If the token is an access token instead of a refresh token.
         """
-        return token_data is not None
-
+        if token_data and not token_data.get("refresh"):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Please provide a refresh token"
+            )

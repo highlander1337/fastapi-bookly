@@ -17,20 +17,22 @@ Impact on SDLC:
 - Aligns with clean architecture by separating infrastructure concerns from application logic.
 """
 
-# FastAPI utility for declaring dependency injection
+# Import FastAPI's dependency declaration utility
 from fastapi import Depends
-# - Depends: used to declare dependencies in path operations and helper functions.
+# - `Depends` allows injection of services (like DB sessions or auth handlers) into route functions.
 
-# Async session generator defined in the database session layer
+# Import async session generator from the DB layer
 from app.db.session import get_session
-# - get_session: async generator that yields a database session from the SQLModel engine.
+# - `get_session` is an asynchronous context manager that yields an active SQLModel session.
 
-from app.core.dependencies import AccessTokenBearer
-# - AccessTokenBearer: custom subclass of HTTPBearer for extracting and validating bearer tokens.
+# Import custom token validation dependencies
+from app.core.dependencies import AccessTokenBearer, RefreshTokenBearer
+# - `AccessTokenBearer` validates JWT access tokens via the HTTP Authorization header.
+# - `RefreshTokenBearer` performs the same for refresh tokens, enforcing different rules.
 
-# Instantiate the bearer token dependency for reuse across v1 route handlers
-access_token_bearer = AccessTokenBearer() # Add bearer token auth as dependency in v1 route layer
-
+# Instantiate reusable bearer token dependency for protected endpoints
+access_token_bearer = AccessTokenBearer()
+# - Used in routes to enforce access token validation and inject user data from the token.
 
 def get_db_session():
     """
@@ -54,9 +56,51 @@ def get_db_session():
         - Makes unit testing easier via dependency overrides.
         - Keeps routes clean by abstracting infrastructure concerns.
     """
-    # Declare the session dependency to be resolved by FastAPI's injection system
     return Depends(get_session)
 
 
 def get_user_details():
+    """
+    Dependency wrapper that resolves the authenticated user's token data.
+
+    This function binds the access token validation logic (`AccessTokenBearer`) into
+    FastAPI's dependency system, allowing route handlers to securely access the decoded
+    token payload.
+
+    Returns:
+        Depends: A FastAPI dependency that returns decoded user info from a valid token.
+
+    Usage:
+        Inject this into any protected route to extract identity and authorization data:
+
+            @router.get("/me")
+            async def get_profile(user=Depends(get_user_details)):
+                return {"user_id": user["sub"]}
+    """
     return Depends(access_token_bearer)
+
+
+def get_token_details():
+    """
+    Dependency wrapper that resolves and validates a refresh token.
+
+    This function integrates the `RefreshTokenBearer` authentication class into FastAPI's 
+    dependency injection system, ensuring that only valid refresh tokens are accepted in 
+    routes where it is used.
+
+    Returns:
+        Depends: A FastAPI dependency that returns the decoded JWT payload for a refresh token.
+
+    Usage:
+        Inject this into routes that handle token renewal or logout functionality:
+
+            @router.post("/auth/refresh")
+            async def refresh_access_token(token=Depends(get_token_details)):
+                return {"user_id": token["sub"]}
+
+    Benefits:
+        - Enforces strict use of refresh tokens for specific endpoints.
+        - Prevents access tokens from being misused in token renewal routes.
+        - Promotes clean separation of token types for security and maintainability.
+    """
+    return Depends(RefreshTokenBearer())
