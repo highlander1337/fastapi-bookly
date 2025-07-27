@@ -8,59 +8,60 @@
 
 sql-bookly/
 │
-├── app/                            # Core application code
-│   ├── __init__.py
-│   ├── main.py                     # FastAPI app instance and startup logic
-│   ├── config.py                   # App settings (Pydantic BaseSettings)
+├── app/                            # Core application source code
+│   ├── __init__.py                 # Package initialization
+│   ├── main.py                    # FastAPI app instance, including startup and shutdown event handlers
+│   ├── config.py                  # Application configuration using Pydantic BaseSettings
 │
-│   ├── api/                        # All API routers
+│   ├── api/                       # API layer with versioned routers and dependencies
 │   │   ├── __init__.py
-│   │   ├── v1/                     # Versioned API for clients only
+│   │   ├── v1/                    # API version 1 (client-facing endpoints)
 │   │   │   ├── __init__.py
-│   │   │   ├── routes/            # Endpoints grouped by domain
-│   │   │   │   ├── books.py
-│   │   │   │   └── users.py
-│   │   │   └── dependencies.py    # Route-level dependencies (e.g., auth, pagination)
+│   │   │   ├── routes/            # Domain-specific route handlers/endpoints
+│   │   │   │   ├── books.py       # Book resource endpoints (CRUD)
+│   │   │   │   └── users.py       # User resource endpoints (auth, profile, etc.)
+│   │   │   └── dependencies.py   # Reusable dependency injection functions (e.g., DB session, auth)
 │
-│   ├── core/                       # Core utilities and startup/shutdown events
+│   ├── core/                      # Core infrastructure and cross-cutting concerns
 │   │   ├── __init__.py
-│   │   ├── security.py            # Auth / JWT utils
-│   │   └── events.py              # App startup/shutdown hooks
+│   │   ├── security.py           # Authentication/authorization helpers (JWT creation, password hashing)
+│   │   ├── dependencies.py       # Core reusable security dependencies (e.g., AccessTokenBearer)
+│   │   └── events.py             # Application startup/shutdown event handlers
 │
-│   ├── db/                         # Database-related logic
+│   ├── db/                       # Database configuration and models
 │   │   ├── __init__.py
-│   │   ├── main.py                # Engine creation
-│   │   ├── session.py             # Async session generator for DI
-│   │   └── models/                # SQLModel or ORM models
+│   │   ├── main.py               # Database engine and connection setup
+│   │   ├── session.py            # Async session factory for dependency injection
+│   │   └── models/               # Data models using SQLModel/ORM
 │   │       ├── __init__.py
 │   │       ├── book.py
 │   │       └── user.py
 │
-│   ├── schemas/                    # Pydantic schemas for validation
+│   ├── schemas/                  # Pydantic data validation and serialization schemas
 │   │   ├── __init__.py
 │   │   ├── v1/
 │   │   │   ├── __init__.py
-│   │   │   ├── book.py
-│   │   │   └── user.py
+│   │   │   ├── book.py           # Book-related request and response models
+│   │   │   └── user.py           # User-related request and response models
 │
-│   ├── services/                   # Business logic layer
+│   ├── services/                 # Business logic layer abstracting database operations
 │   │   ├── __init__.py
-│   │   ├── book.py
-│   │   └── user.py
+│   │   ├── book.py               # Book domain services (CRUD logic, validations)
+│   │   └── user.py               # User domain services (auth, registration, profile updates)
 │
-│   └── utils/                      # Utility functions
+│   └── utils/                    # Helper functions and utility modules
 │       ├── __init__.py
 │       └── helpers.py
 │
-├── .env                            # Environment variables
-├── requirements.txt
-├── alembic/                        # Alembic migrations (if using)
-├── alembic.ini
-├── tests/                          # Unit and integration tests
+├── .env                         # Environment variables (local development and production configs)
+├── requirements.txt             # Python package dependencies
+├── alembic/                     # Alembic migration scripts (DB version control)
+├── alembic.ini                  # Alembic configuration file
+├── tests/                       # Automated test suite (unit and integration tests)
 │   ├── __init__.py
-│   ├── test_books.py
-│   └── test_users.py
-└── README.md
+│   ├── test_books.py             # Tests for book domain and API
+│   └── test_users.py             # Tests for user domain and API
+└── README.md                    # Project overview and instructions
 
 ```
 
