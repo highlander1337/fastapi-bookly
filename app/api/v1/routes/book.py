@@ -76,7 +76,7 @@ async def create_a_book(book_data: BookCreateModel, session: AsyncSession = get_
         dict: The newly created book object.
     """
     # Pass validated book data to service for creation
-    new_book = await book_service.create_book(book_data, session, user_details=get_user_details())
+    new_book = await book_service.create_book(book_data, session)
     return new_book
      
 
@@ -122,7 +122,7 @@ async def update_book(book_uid: str, book_update_data: BookUpdateModel, session:
         HTTPException 404: If book with given ID does not exist.
     """
     # Delegate update to service layer
-    updated_book = await book_service.update_book(book_uid, book_update_data, session, user_details=get_user_details())
+    updated_book = await book_service.update_book(book_uid, book_update_data, session)
     
     if updated_book is not None:
         return updated_book
