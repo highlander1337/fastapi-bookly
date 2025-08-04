@@ -184,3 +184,15 @@ Here’s how Alembic fits into each phase of the SDLC:
   import secrets
   secrets.token_hex(16) # generate a 16 bits key
 ```
+
+## How to install dependencies from requirments.txt
+
+``` bash
+  pip install -r requirements.txt
+```
+
+## How to start the app
+
+``` bash
+  uvicorn app.main:app --reload
+```
