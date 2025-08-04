@@ -57,6 +57,10 @@ class Settings(BaseSettings):
     # REDIST host port for token revoking
     REDIS_PORT: int = 6379
 
+    REDIS_USERNAME: str
+
+    REDIS_PASSWORD: str
+
     # Configures how Pydantic loads and validates environment variables
     model_config = SettingsConfigDict(
         env_file=".env",   # Specifies the file to load environment variables from

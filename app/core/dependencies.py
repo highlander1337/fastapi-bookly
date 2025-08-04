@@ -96,16 +96,15 @@ class TokenBearer(HTTPBearer):
             )
         
         # If token is in the blocklist or token is invalid, raise and error
-        # Only work with redis server
-        # if await token_in_blocklist(token_data['jti']):
-        #     raise HTTPException(
-        #         status_code=status.HTTP_403_FORBIDDEN,
-        #         detail={
-        #             "error":"Token invalid or has been revoked",
-        #             "resolution":"Please get a new token"
-        #         }
+        if await token_in_blocklist(token_data['jti']):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail={
+                    "error":"Token invalid or has been revoked",
+                    "resolution":"Please get a new token"
+                }
 
-        #     )
+            )
 
         # Perform additional validation specific to access or refresh tokens
         self.verify_token_data(token_data)

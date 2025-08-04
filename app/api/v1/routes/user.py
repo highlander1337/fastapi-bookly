@@ -238,7 +238,7 @@ async def get_user_new_access_token(token_details: dict = get_refresh_token_deta
     )
 
 @auth_router.get('/logout')
-async def revooke_token(token_details:dict=get_refresh_token_details()):
+async def revooke_token(token_details:dict=get_access_token_details()):
     jti = token_details['jti']
 
     await add_jti_to_blocklist(jti)
