@@ -35,9 +35,10 @@ from app.schemas import UserCreateModel, UserReadModel, UserLoginModel
 from app.services.user import UserService
 # - UserService: business logic class handling operations like user registration, login, profile updates.
 
-from app.api.v1.dependencies import get_db_session, get_token_details
+from app.api.v1.dependencies import get_db_session, get_refresh_token_details, get_access_token_details
 # - get_db_session: dependency function to provide an async database session.
-# - get_token_details: dependency wrapper that resolves and validates a refresh token
+# - get_refresh_token_details: dependency wrapper that resolves and validates a refresh token
+# - get_access_token_details: Dependency wrapper that resolves and validates an access token.
 
 from app.core.security import create_access_token, decode_token, verify_password
 # - create_access_token: function to generate JWT tokens.
@@ -55,6 +56,9 @@ from datetime import timedelta, datetime, timezone
 #               avoid bugs in environments that expect timezone-aware JWT claims.
 # - timezone: used to make datetime objects explicitly timezone-aware (UTC),
 #               ensuring proper handling in token validation across systems.
+
+# Import async Redis helper functions for token revocation support (adding and checking JTIs)
+from app.core.redis import add_jti_to_blocklist, token_in_blocklist
 
 # Define the API router for authentication-related endpoints
 auth_router = APIRouter()
@@ -198,7 +202,7 @@ async def login_user(login_data: UserLoginModel, session: AsyncSession = get_db_
 
     
 @auth_router.get('/refresh_token')
-async def get_user_new_access_token(token_details: dict = get_token_details()):
+async def get_user_new_access_token(token_details: dict = get_refresh_token_details()):
     """
     Generate a new access token using a valid refresh token.
 
@@ -232,3 +236,17 @@ async def get_user_new_access_token(token_details: dict = get_token_details()):
         status_code=status.HTTP_400_BAD_REQUEST,
         detail="Invalid or expired token"
     )
+
+@auth_router.get('/logout')
+async def revooke_token(token_details:dict=get_refresh_token_details()):
+    jti = token_details['jti']
+
+    await add_jti_to_blocklist(jti)
+
+    return JSONResponse(
+        content={
+            "message":"Logged out succesful"
+        },
+        status_code=status.HTTP_200_OK
+    )
+

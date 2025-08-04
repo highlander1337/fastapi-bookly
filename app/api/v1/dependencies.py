@@ -80,27 +80,54 @@ def get_user_details():
     return Depends(access_token_bearer)
 
 
-def get_token_details():
+def get_refresh_token_details():
     """
-    Dependency wrapper that resolves and validates a refresh token.
+    Dependency wrapper for validating and resolving a refresh token.
 
     This function integrates the `RefreshTokenBearer` authentication class into FastAPI's 
     dependency injection system, ensuring that only valid refresh tokens are accepted in 
-    routes where it is used.
+    routes where refresh-token-specific behavior (e.g., renewal or revocation) is required.
 
     Returns:
-        Depends: A FastAPI dependency that returns the decoded JWT payload for a refresh token.
+        Depends: A FastAPI dependency that yields the decoded JWT payload of a validated refresh token.
 
     Usage:
-        Inject this into routes that handle token renewal or logout functionality:
+        Use this in endpoints that handle access token renewal or logout:
 
             @router.post("/auth/refresh")
-            async def refresh_access_token(token=Depends(get_token_details)):
+            async def refresh_access_token(token=Depends(get_refresh_token_details)):
                 return {"user_id": token["sub"]}
 
     Benefits:
-        - Enforces strict use of refresh tokens for specific endpoints.
-        - Prevents access tokens from being misused in token renewal routes.
-        - Promotes clean separation of token types for security and maintainability.
+        - Enforces strict separation of token types across routes.
+        - Prevents misuse of access tokens in refresh-specific endpoints.
+        - Enhances clarity and maintainability in token handling logic.
     """
     return Depends(RefreshTokenBearer())
+
+
+def get_access_token_details():
+    """
+    Dependency wrapper that resolves and validates an access token.
+
+    This function integrates the `AccessTokenBearer` authentication class into FastAPI's 
+    dependency injection system, ensuring that only valid access tokens are accepted in 
+    routes where it is used.
+
+    Returns:
+        Depends: A FastAPI dependency that returns the decoded JWT payload for an access token.
+
+    Usage:
+        Inject this into protected routes that require authenticated access:
+
+            @router.get("/protected-resource")
+            async def protected_route(token=Depends(get_access_token_details)):
+                return {"user_id": token["sub"]}
+
+    Benefits:
+        - Ensures that protected routes require a valid access token.
+        - Promotes strict separation of access and refresh token usage.
+        - Improves security and maintainability of authorization logic.
+    """
+    return Depends(AccessTokenBearer())
+

@@ -39,6 +39,8 @@ from app.core.security import decode_token
 # Import FastAPI's exception class for returning HTTP errors to clients
 from fastapi.exceptions import HTTPException
 
+# Import async Redis helper functions for token revocation support (adding and checking JTIs)
+from app.core.redis import add_jti_to_blocklist, token_in_blocklist
 
 class TokenBearer(HTTPBearer):
     """
@@ -87,8 +89,23 @@ class TokenBearer(HTTPBearer):
         if not self.token_valid(token_data):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Invalid or expired token"
+                detail={
+                    "error":"Token invalid or expired",
+                    "resolution":"Please get a new token"
+                }
             )
+        
+        # If token is in the blocklist or token is invalid, raise and error
+        # Only work with redis server
+        # if await token_in_blocklist(token_data['jti']):
+        #     raise HTTPException(
+        #         status_code=status.HTTP_403_FORBIDDEN,
+        #         detail={
+        #             "error":"Token invalid or has been revoked",
+        #             "resolution":"Please get a new token"
+        #         }
+
+        #     )
 
         # Perform additional validation specific to access or refresh tokens
         self.verify_token_data(token_data)

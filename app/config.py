@@ -51,6 +51,12 @@ class Settings(BaseSettings):
     # JWT algorithm for token access generation
     JWT_ALGORITHM: str
 
+    # REDIST host address for token revoking
+    REDIS_HOST: str = "localhost"
+    
+    # REDIST host port for token revoking
+    REDIS_PORT: int = 6379
+
     # Configures how Pydantic loads and validates environment variables
     model_config = SettingsConfigDict(
         env_file=".env",   # Specifies the file to load environment variables from
