@@ -238,15 +238,33 @@ async def get_user_new_access_token(token_details: dict = get_refresh_token_deta
     )
 
 @auth_router.get('/logout')
-async def revooke_token(token_details:dict=get_access_token_details()):
+async def revoke_token(token_details: dict = get_access_token_details()):
+    """
+    Log out the user by revoking their current access token.
+
+    This endpoint takes the JWT token details from the authenticated request,
+    extracts the token's unique identifier (JTI), and adds it to the Redis blocklist.
+    This invalidates the token immediately, preventing any further use until it expires.
+
+    Args:
+        token_details (dict): The decoded JWT payload, injected by the access token dependency.
+
+    Returns:
+        JSONResponse: A confirmation message indicating successful logout.
+    """
+
+    # Extract the unique token identifier (JTI) from the JWT payload
     jti = token_details['jti']
 
+    # Add the JTI to Redis blocklist to revoke the token
     await add_jti_to_blocklist(jti)
 
+    # Return a success message to the client
     return JSONResponse(
         content={
-            "message":"Logged out succesful"
+            "message": "Logged out successful"
         },
         status_code=status.HTTP_200_OK
     )
+
 
